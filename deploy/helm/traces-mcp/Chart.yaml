@@ -1,0 +1,17 @@
+apiVersion: v2
+name: traces-mcp
+description: Traces MCP Server for Llama Stack - Distributed Tracing Integration
+
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - observability
+  - tracing
+  - tempo
+  - mcp
+  - llama-stack
+
+maintainers:
+  - name: OpenShift Observability Team

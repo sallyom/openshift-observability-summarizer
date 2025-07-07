@@ -7,6 +7,25 @@ service:
   type: ClusterIP
   port: 8501
 
+# OpenShift Route (only for OpenShift clusters)
+route:
+  enabled: false
+  host: ""
+  tls:
+    enabled: true
+
+# Kubernetes Ingress (for minikube/standard Kubernetes)
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: observability-ui.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
 env:
   PROMETHEUS_URL: "http://thanos-querier.openshift-monitoring.svc.cluster.local:9091"
   LLM_URL: "http://llm-service:8012"

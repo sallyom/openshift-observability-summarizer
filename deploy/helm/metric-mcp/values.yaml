@@ -13,6 +13,7 @@ route:
   host: ai-metrics-summarizer.example.com
 
 config:
+  # Default Prometheus URL - can be overridden via --set config.prometheusUrl=<your-url>
   prometheusUrl: "https://thanos-querier.openshift-monitoring.svc.cluster.local:9091"
 
 llm:

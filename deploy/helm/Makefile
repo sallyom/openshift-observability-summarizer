@@ -18,6 +18,8 @@ METRIC_MCP_RELEASE_NAME ?= metric-mcp
 METRIC_MCP_CHART_PATH ?= metric-mcp
 METRIC_UI_RELEASE_NAME ?= ui
 METRIC_UI_CHART_PATH ?= ui
+TRACES_MCP_RELEASE_NAME ?= traces-mcp
+TRACES_MCP_CHART_PATH ?= traces-mcp
 TOLERATIONS_TEMPLATE=[{"key":"$(1)","effect":"NoSchedule","operator":"Exists"}]
 
 # Unified model configuration map
@@ -101,6 +103,8 @@ help:
 	@echo "  {SAFETY,LLM}_URL         - Model URL"
 	@echo "  {SAFETY,LLM}_API_TOKEN   - Model API token for remote models"
 	@echo "  {SAFETY,LLM}_TOLERATION  - Model pod toleration"
+	@echo "  PROMETHEUS_URL           - Custom Prometheus URL (overrides default thanos-querier)"
+	@echo "  TEMPO_URL                - Custom Tempo URL for distributed tracing"
 	@echo "  ALERTS                   - Set to TRUE to install alerting with main deployment"
 	@echo "  CUSTOM_INGESTION_PIPELINE_VALUES - Custom ingestion pipeline values (full path)"
 	@echo "  CUSTOM_INGESTION_PIPELINE_NAME   - Custom ingestion pipeline name"
@@ -143,19 +147,28 @@ install-metric-mcp: namespace
 		helm upgrade --install $(METRIC_MCP_RELEASE_NAME) $(METRIC_MCP_CHART_PATH) -n $(NAMESPACE) \
 			--set rbac.createGrafanaRole=false \
 			--set-json listModels.modelId.enabledModelIds='$(INTERNAL_MODELS_JSON)' \
-			--set-json modelConfig='$(MODEL_CONFIG_JSON)'; \
+			--set-json modelConfig='$(MODEL_CONFIG_JSON)' \
+			$(if $(PROMETHEUS_URL),--set config.prometheusUrl='$(PROMETHEUS_URL)',); \
 	else \
 		echo "ClusterRole does not exist. Deploying and creating Grafana role..."; \
 		helm upgrade --install $(METRIC_MCP_RELEASE_NAME) $(METRIC_MCP_CHART_PATH) -n $(NAMESPACE) \
 			--set rbac.createGrafanaRole=true \
 			--set-json listModels.modelId.enabledModelIds='$(INTERNAL_MODELS_JSON)' \
-			--set-json modelConfig='$(MODEL_CONFIG_JSON)'; \
+			--set-json modelConfig='$(MODEL_CONFIG_JSON)' \
+			$(if $(PROMETHEUS_URL),--set config.prometheusUrl='$(PROMETHEUS_URL)',); \
 	fi
 
 .PHONY: install-metric-ui
 install-metric-ui: namespace
 	@echo "Deploying Metric UI"
-	helm upgrade --install $(METRIC_UI_RELEASE_NAME) $(METRIC_UI_CHART_PATH) -n $(NAMESPACE)
+	helm upgrade --install $(METRIC_UI_RELEASE_NAME) $(METRIC_UI_CHART_PATH) -n $(NAMESPACE) \
+		$(if $(PROMETHEUS_URL),--set env.PROMETHEUS_URL='$(PROMETHEUS_URL)',)
+
+.PHONY: install-traces-mcp
+install-traces-mcp: namespace
+	@echo "Deploying Traces MCP"
+	helm upgrade --install $(TRACES_MCP_RELEASE_NAME) $(TRACES_MCP_CHART_PATH) -n $(NAMESPACE) \
+		$(if $(TEMPO_URL),--set tempo.url='$(TEMPO_URL)',)
 
 .PHONY: install-rag
 install-rag: namespace
@@ -173,7 +186,7 @@ install-rag: namespace
 	@echo "$(RAG_CHART) installed successfully"
 
 .PHONY: install
-install: namespace depend install-rag install-metric-mcp install-metric-ui delete-jobs
+install: namespace depend install-rag install-metric-mcp install-traces-mcp install-metric-ui delete-jobs
 	@if [ "$(ALERTS)" = "TRUE" ]; then \
 		echo "ALERTS flag is set to TRUE. Installing alerting..."; \
 		$(MAKE) install-alerts NAMESPACE=$(NAMESPACE); \

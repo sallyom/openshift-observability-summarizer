@@ -1,16 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ui
+  name: {{ include "ui.fullname" . }}
+  labels:
+    {{- include "ui.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ui
+      {{- include "ui.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: ui
+        {{- include "ui.selectorLabels" . | nindent 8 }}
     spec:
       containers:
         - name: ui
@@ -21,4 +23,10 @@ spec:
             - containerPort: 8501
           env:
             - name: MCP_API_URL
-              value: "http://metric-mcp-svc.{{ .Release.Namespace }}.svc.cluster.local:8000"
+              value: "{{ .Values.env.MCP_API_URL }}"
+            - name: PROMETHEUS_URL
+              value: "{{ .Values.env.PROMETHEUS_URL }}"
+            - name: LLM_URL
+              value: "{{ .Values.env.LLM_URL }}"
+            - name: LLM_API_TOKEN
+              value: "{{ .Values.env.LLM_API_TOKEN }}"
